@@ -198,4 +198,4 @@ def message_reply(message):
 
 
 bot.infinity_polling()
-#123
+#123 пошел нахуй пидор
