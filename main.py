@@ -1,15 +1,15 @@
-import numpy as numpy
+import numpy as numpy  # импорт библиотек для работы бота
 import telebot
 import pymysql
 from telebot import types
 
 print("Загрузка бота...")
-bot = telebot.TeleBot('6792924162:AAHKgpSjb_7_wV799VokWAUM5gVGlRNUWN4')
+bot = telebot.TeleBot('6792924162:AAHKgpSjb_7_wV799VokWAUM5gVGlRNUWN4') #подключение к боту
 
 status = ["", "", ""]
 
 
-def get_audience_info():
+def get_audience_info(): # функция, обрабатывающая информацию об аудиториях
     try:
         connection = pymysql.connect(
             host='FVH1.spaceweb.ru',
@@ -34,7 +34,7 @@ def get_audience_info():
         return "error"
 
 
-def get_list_univ():
+def get_list_univ(): # функция, обрабатывающая информацию об университетах
     try:
         connection = pymysql.connect(
             host='FVH1.spaceweb.ru',
@@ -52,7 +52,7 @@ def get_list_univ():
     return rows
 
 
-def get_list_build(univ):
+def get_list_build(univ): # функция, обрабатывающая информацию о корпусах университетов
     try:
         connection = pymysql.connect(
             host='FVH1.spaceweb.ru',
@@ -73,7 +73,7 @@ def get_list_build(univ):
     return row
 
 
-def get_all_list_build():
+def get_all_list_build():# функция, обрабатывающая информацию об унивенрситетах
     try:
         connection = pymysql.connect(
             host='FVH1.spaceweb.ru',
@@ -91,7 +91,7 @@ def get_all_list_build():
     return row
 
 
-@bot.message_handler(commands=['start'])
+@bot.message_handler(commands=['start'])# запуск бота, вывод вариантов на выбор для первого этапа работы программы
 def start_message(message):
     if message.text == "/start":
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -104,7 +104,7 @@ def start_message(message):
                              message.from_user), reply_markup=markup)
 
 
-@bot.message_handler(content_types=['text'])
+@bot.message_handler(content_types=['text'])# переход на второй этап работы программы, обработка полученных данных, переход далее
 def message_reply(message):
     if message.text == "Авторы":
         bot.send_message(message.chat.id, "Бот сделан V и N")
@@ -120,7 +120,7 @@ def message_reply(message):
         bot.send_message(message.chat.id, "Выберите нужный вуз".format(message.from_user), reply_markup=markup)
 
     if message.text == "До общежития":
-        bot.send_message(message.chat.id, "тут что то будет")
+        bot.send_message(message.chat.id, "от общежития до корпусов университета и обратно можно добраться следующим образом:\n 1)корпус Д - автобусы 1,4,25 с остановки ""ул.Вишневского"" до остановки ""ул.Пионерская""\n 2)корпус А - автобусы 22,30,89 с остановки ""ул.Товарищеская"" до остановки ""ул.Толстова"" ")
 
     if message.text == "На главную":
         status[0] = ""
@@ -198,4 +198,3 @@ def message_reply(message):
 
 
 bot.infinity_polling()
-#123 пошел
