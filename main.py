@@ -1,15 +1,14 @@
-import numpy as numpy  # импорт библиотек для работы бота
-import telebot
-import pymysql
-from telebot import types
+import telebot #библиотека работы с телеграмм ботом
+import pymysql #связь с базой данных на SQL
+from telebot import types #клавиатура для телеграмм бота
 
 print("Загрузка бота...")
-bot = telebot.TeleBot('6792924162:AAHKgpSjb_7_wV799VokWAUM5gVGlRNUWN4')  # подключение к боту
+bot = telebot.TeleBot('6792924162:AAHKgpSjb_7_wV799VokWAUM5gVGlRNUWN4')  # подключение к боту через токен
 
-status = {}
+persons = {} #словарь{ ID чата с пользователем : ["выбранный университет", "выбранный корпус университета", "выбранная аудитория корпуса"] }
 
 
-def get_audience_info(message_chat_id):  # функция, обрабатывающая информацию об аудиториях
+def get_audience_info(message_chat_id):  #возвращает информацию об аудитории в виде tuple(("ID", "ID_U", "Number", "Contex", "Pict_URL"),)
     try:
         connection = pymysql.connect(
             host='FVH1.spaceweb.ru',
@@ -18,11 +17,11 @@ def get_audience_info(message_chat_id):  # функция, обрабатыва�
             db='vadzaharki'
         )
         with connection.cursor() as cursor:
-            select_id_univ = "SELECT ID FROM universities_buildings where Name = '" + status[message_chat_id][1] + "'"
+            select_id_univ = "SELECT ID FROM universities_buildings where Name = '" + persons[message_chat_id][1] + "'"
             cursor.execute(select_id_univ)
             rows = cursor.fetchall()
             select_audience_info = "SELECT * FROM audiences WHERE ID_B = " + str(rows[0][0]) + " AND Number = " + \
-                                   status[message_chat_id][2]
+                                   persons[message_chat_id][2]
             cursor.execute(select_audience_info)
             rows = cursor.fetchall()
         connection.close()
@@ -34,7 +33,7 @@ def get_audience_info(message_chat_id):  # функция, обрабатыва�
         return "error"
 
 
-def get_list_univ():  # функция, обрабатывающая информацию об университетах
+def get_list_univ():  # возвращает список доступных университетов в виде list
     try:
         connection = pymysql.connect(
             host='FVH1.spaceweb.ru',
@@ -46,13 +45,17 @@ def get_list_univ():  # функция, обрабатывающая инфор�
             select_all_univ = "SELECT Name FROM universities"
             cursor.execute(select_all_univ)
             rows = cursor.fetchall()
+            row = list()
+            for i in range(len(rows)):
+                for j in range(len(rows[i])):
+                    row.append(rows[i][j])
         connection.close()
     except Exception as ex:
         print(ex)
-    return rows
+    return row
 
 
-def get_list_build(univ):  # функция, обрабатывающая информацию о корпусах университетов
+def get_list_build(univ):  #возвращает список корпусов в зависимости от выбранного университета в виде tuple
     try:
         connection = pymysql.connect(
             host='FVH1.spaceweb.ru',
@@ -73,25 +76,7 @@ def get_list_build(univ):  # функция, обрабатывающая инф
     return row
 
 
-def get_all_list_build():  # функция, обрабатывающая информацию об унивенрситетах
-    try:
-        connection = pymysql.connect(
-            host='FVH1.spaceweb.ru',
-            user='vadzaharki',
-            password='Kinimi256891',
-            db='vadzaharki'
-        )
-        with connection.cursor() as cursor:
-            select_list_build = "SELECT Name FROM universities_buildings"
-            cursor.execute(select_list_build)
-            row = cursor.fetchall()
-        connection.close()
-    except Exception as ex:
-        print(ex)
-    return row
-
-
-@bot.message_handler(commands=['start'])  # запуск бота, вывод вариантов на выбор для первого этапа работы программы
+@bot.message_handler(commands=['start'])  # стартовая команда запуска бота
 def start_message(message):
     if message.text == "/start":
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -105,13 +90,13 @@ def start_message(message):
 
 
 @bot.message_handler(
-    content_types=['text'])  # переход на второй этап работы программы, обработка полученных данных, переход далее
+    content_types=['text'])  # переход на второй этап работы программы, обработка полученных данных
 def message_reply(message):
-    if message.chat.id not in status:
-        status[message.chat.id] = ["", "", ""]
-    if message.text == "Авторы":
+    if message.chat.id not in persons:
+        persons[message.chat.id] = ["", "", ""]
+    elif message.text == "Авторы":
         bot.send_message(message.chat.id, "Бот сделан V и N")
-    if message.text == "До аудитории":
+    elif message.text == "До аудитории":
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
         univs = get_list_univ()
         for i in range(len(univs)):
@@ -122,14 +107,14 @@ def message_reply(message):
         markup.add(types.KeyboardButton("На главную"))
         bot.send_message(message.chat.id, "Выберите нужный вуз".format(message.from_user), reply_markup=markup)
 
-    if message.text == "До общежития":
+    elif message.text == "До общежития":
         bot.send_message(message.chat.id,
                          "от общежития до корпусов университета и обратно можно добраться следующим образом:\n 1)корпус Д - автобусы 1,4,25 с остановки ""ул.Вишневского"" до остановки ""ул.Пионерская""\n 2)корпус А - автобусы 22,30,89 с остановки ""ул.Товарищеская"" до остановки ""ул.Толстова"" ")
 
-    if message.text == "На главную":
-        status[message.chat.id][0] = ""
-        status[message.chat.id][1] = ""
-        status[message.chat.id][2] = ""
+    elif message.text == "На главную":
+        persons[message.chat.id][0] = ""
+        persons[message.chat.id][1] = ""
+        persons[message.chat.id][2] = ""
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
         btn1 = types.KeyboardButton("До аудитории")
         btn2 = types.KeyboardButton("Авторы")
@@ -138,8 +123,8 @@ def message_reply(message):
         bot.send_message(message.chat.id,
                          text="Привет! Я бот, который поможет тебе найти аудиторию в КНИТУ! ".format(
                              message.from_user), reply_markup=markup)
-    if message.text == "Назад":
-        if status[message.chat.id][0] == "":
+    elif message.text == "Назад":
+        if persons[message.chat.id][0] == "":
             markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
             btn1 = types.KeyboardButton("До аудитории")
             btn2 = types.KeyboardButton("Авторы")
@@ -148,7 +133,8 @@ def message_reply(message):
             bot.send_message(message.chat.id,
                              text="Привет! Я бот, который поможет тебе найти аудиторию в КНИТУ! ".format(
                                  message.from_user), reply_markup=markup)
-        elif status[message.chat.id][1] == "":
+        elif persons[message.chat.id][1] == "":
+            persons[message.chat.id][0] = ""
             markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
             univs = get_list_univ()
             for i in range(len(univs)):
@@ -158,10 +144,10 @@ def message_reply(message):
             markup.add(types.KeyboardButton("Назад"))
             markup.add(types.KeyboardButton("На главную"))
             bot.send_message(message.chat.id, "Выберите нужный вуз".format(message.from_user), reply_markup=markup)
-        elif status[message.chat.id][2] == "":
-            status[message.chat.id][1] = ""
+        elif persons[message.chat.id][2] == "":
+            persons[message.chat.id][1] = ""
             markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-            builds = get_list_build(status[message.chat.id][0])
+            builds = get_list_build(persons[message.chat.id][0])
             for i in range(len(builds)):
                 build = "".join(builds[i])
                 item1 = types.KeyboardButton(build)
@@ -171,10 +157,10 @@ def message_reply(message):
             bot.send_message(message.chat.id, "Выберите нужный корпус".format(message.from_user), reply_markup=markup)
 
 
-    elif message.text in numpy.hstack(get_list_univ()).tolist():
-        status[message.chat.id][0] = message.text
+    elif message.text in get_list_univ():
+        persons[message.chat.id][0] = message.text
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        builds = get_list_build(status[message.chat.id][0])
+        builds = get_list_build(persons[message.chat.id][0])
         for i in range(len(builds)):
             build = "".join(builds[i])
             item1 = types.KeyboardButton(build)
@@ -183,8 +169,8 @@ def message_reply(message):
         markup.add(types.KeyboardButton("На главную"))
         bot.send_message(message.chat.id, "Выберите нужный корпус".format(message.from_user), reply_markup=markup)
 
-    elif status[message.chat.id][0] != "" and status[message.chat.id][1] != "":
-        status[message.chat.id][2] = message.text
+    elif persons[message.chat.id][0] != "" and persons[message.chat.id][1] != "":
+        persons[message.chat.id][2] = message.text
         info = get_audience_info(message.chat.id)
         if info == "error":
             bot.send_message(message.chat.id,
@@ -194,12 +180,14 @@ def message_reply(message):
             picture_path = info[0][4]
             bot.send_photo(message.chat.id, picture_path, caption=contex)
 
-    elif status[message.chat.id][0] != "":
-        status[message.chat.id][1] = message.text
+    elif persons[message.chat.id][0] != "":
+        persons[message.chat.id][1] = message.text
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
         markup.add(types.KeyboardButton("Назад"))
         markup.add(types.KeyboardButton("На главную"))
         bot.send_message(message.chat.id, "Введите нужную аудиторию".format(message.from_user), reply_markup=markup)
+    else:
+        bot.send_message(message.chat.id, "Ты рузкий не панимаешь шоли э?".format(message.from_user))
 
 
-bot.infinity_polling()
+bot.infinity_polling() #бесконечный прием сообщений
